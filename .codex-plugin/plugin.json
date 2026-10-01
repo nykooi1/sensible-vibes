@@ -5,7 +5,8 @@
   "author": { "name": "Noah Kim" },
   "repository": "https://github.com/nykooi1/vibe-wise",
   "license": "MIT",
-  "skills": "./skills/",
+  "skills": "./codex/skills/",
+  "hooks": "./codex/hooks/hooks.json",
   "interface": {
     "displayName": "VibeWise",
     "shortDescription": "Learn software design while AI writes agreed code.",

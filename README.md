@@ -7,7 +7,8 @@
 A learning-first plugin for Claude Code and Codex. The agent asks for your
 approach, helps you examine tradeoffs, and explains unfamiliar concepts. You
 shape the design and decide when it is ready to implement. The agent writes the
-agreed code, then explains what changed and why.
+agreed code, then explains what changed and why. The Codex implementation lives
+under `codex/`; the existing Claude Code skills and hook remain unchanged.
 
 For anyone who wants to learn as they build—whether you're an aspiring engineer, a junior developer, or an experienced engineer exploring an unfamiliar stack. Practice planning how the pieces fit together, anticipating failures, and checking the result while keeping ownership of the decisions.
 
