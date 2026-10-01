@@ -4,11 +4,52 @@
 
 **You build. AI writes.**
 
-A Claude Code plugin that puts learning first and keeps you in control while AI writes the code you designed. Claude **asks for your approach first**, helps you examine tradeoffs, and explains unfamiliar concepts. You shape the design and decide when it's ready to implement. Claude writes the code, then explains what it changed and why.
+A learning-first plugin for Claude Code and Codex. The agent asks for your
+approach, helps you examine tradeoffs, and explains unfamiliar concepts. You
+shape the design and decide when it is ready to implement. The agent writes the
+agreed code, then explains what changed and why.
 
 For anyone who wants to learn as they build—whether you're an aspiring engineer, a junior developer, or an experienced engineer exploring an unfamiliar stack. Practice planning how the pieces fit together, anticipating failures, and checking the result while keeping ownership of the decisions.
 
-## Get started
+## Get started with Codex
+
+VibeWise works with Codex in the ChatGPT desktop app and Codex CLI. You need
+[Python 3](https://www.python.org/downloads/) for learning-context restoration
+and resetting notes. No extra Python packages or service are required.
+
+First, register the marketplace. In a terminal, run the command matching your
+source:
+
+```sh
+# After this branch is published in a fork:
+codex plugin marketplace add NiketKakkar03/vibe-wise --ref codex-software
+
+# Or, for a local checkout of this repository:
+codex plugin marketplace add /absolute/path/to/vibe-wise
+```
+
+### ChatGPT desktop app
+
+1. Restart the app after registering the marketplace.
+2. Open **Plugins Directory**, select **VibeWise Codex**, and install **VibeWise**.
+3. Start a new Codex task in the project where you want learning mode.
+4. Enter `/skills` and select **VibeWise → learn**. Codex uses a skill picker
+   instead of Claude Code's `/vibe-wise:learn` command.
+
+### Codex CLI
+
+1. Run `codex plugin add vibe-wise@vibe-wise-codex` to install the plugin.
+2. Start `codex` in your project and enter `/skills`.
+3. Select **VibeWise → learn**.
+
+In either client, select **VibeWise → reset** through `/skills` to back up this
+project's learning notes and restart onboarding. The session-start hook restores
+active notes across sessions and compaction after you review and trust it in
+Codex. Notes live in your project's `.vibe-wise/` directory; add that directory
+to `.gitignore` if you do not want to commit it. The plugin will not change
+`.gitignore` silently.
+
+## Get started with Claude Code
 
 You need [Claude Code](https://code.claude.com/docs/en/setup) and
 [Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore

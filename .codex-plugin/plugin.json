@@ -1,0 +1,18 @@
+{
+  "name": "vibe-wise",
+  "version": "0.1.43",
+  "description": "Learning-first software development with design and implementation checkpoints.",
+  "author": { "name": "Noah Kim" },
+  "repository": "https://github.com/nykooi1/vibe-wise",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "VibeWise",
+    "shortDescription": "Learn software design while AI writes agreed code.",
+    "longDescription": "VibeWise helps you reason through software design, record decisions, approve specific implementation steps, and learn from the code the agent writes.",
+    "developerName": "Noah Kim",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": ["Activate VibeWise learning mode for this project."]
+  }
+}

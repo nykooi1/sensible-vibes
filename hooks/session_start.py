@@ -77,7 +77,7 @@ def restore(payload):
     # Bootstrap from source files instead of emitting partial notes or an incomplete
     # topic index. Output size is independent of the amount of learning history.
     context = (
-        "VibeWise is active for this project. Before responding or coding, use Read "
+        "VibeWise is active for this project. Before responding or coding, read "
         "to load the Learn guide and its referenced behavior instructions:\n"
         f"{PLUGIN_ROOT / 'skills/learn/SKILL.md'}\n\n"
         f"State directory: {state}\n"

@@ -1,7 +1,6 @@
 ---
 name: reset
-description: Back up this project's learning notes and restart onboarding after confirmation. Does not reset application code.
-disable-model-invocation: true
+description: Back up this project's VibeWise learning notes and restart onboarding only when the user explicitly requests a VibeWise reset. Does not reset application code.
 ---
 
 # Reset VibeWise learning
@@ -15,7 +14,7 @@ code, dependencies, Git history, other projects, and plugin installation stay in
    do not pass the placeholder literally.
 
    ```sh
-   python3 "${CLAUDE_PLUGIN_ROOT}/skills/reset/reset.py" --cwd "<absolute project directory>"
+   python3 "<installed-plugin-root>/skills/reset/reset.py" --cwd "<absolute project directory>"
    ```
 
    The helper uses Learn's project-boundary and legacy-state lookup. If it reports
@@ -24,7 +23,7 @@ code, dependencies, Git history, other projects, and plugin installation stay in
 
 2. Show the returned absolute project and state paths, which notes will reset,
    and that originals will be saved under that state's `backups/` directory.
-   Use AskUserQuestion: header `Reset`, one question, `multiSelect: false`, options
+   Use the client's native question picker when available: header `Reset`, one question, options
    **Cancel** (keep learning notes) and **Reset learning** (back up notes and restart
    onboarding). Ask whether to reset learning for the named project. If the picker
    is unavailable, ask the same question in text. Wait for an explicit answer.
@@ -35,14 +34,14 @@ code, dependencies, Git history, other projects, and plugin installation stay in
    and the preview's exact `confirmation` value, safely quoted:
 
    ```sh
-   python3 "${CLAUDE_PLUGIN_ROOT}/skills/reset/reset.py" --cwd "<original cwd>" --confirm "<confirmation>"
+   python3 "<installed-plugin-root>/skills/reset/reset.py" --cwd "<original cwd>" --confirm "<confirmation>"
    ```
 
    If the target or notes changed, preview again and get new confirmation. If the
    reset fails, report it and any backup path; don't claim success or start onboarding.
    Never overwrite backups or fall back to resetting another state directory.
 
-4. On success, show the backup path. Read `${CLAUDE_PLUGIN_ROOT}/skills/learn/SKILL.md` and resume Learn with
+4. On success, show the backup path. Read `<installed-plugin-root>/skills/learn/SKILL.md` and resume Learn with
    the new incomplete profile. Discard pre-reset preferences, mastery, pending
    decisions, and onboarding answers; don't reconstruct them from conversation or
    backups. Inspect actual code to rebuild the map. Begin fresh onboarding with
