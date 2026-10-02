@@ -4,19 +4,36 @@
 
 **You build. AI writes.**
 
-A Claude Code plugin that puts learning first and keeps you in control while AI writes the code you designed. Claude **asks for your approach first**, helps you examine tradeoffs, and explains unfamiliar concepts. You shape the design and decide when it's ready to implement. Claude writes the code, then explains what it changed and why.
+A learning-first workflow for AI coding agents. Your agent **asks for your approach first**, helps you examine tradeoffs, and explains unfamiliar concepts. You shape the design and decide when it's ready to implement. The agent writes the agreed code, then explains what it changed and why.
 
 For anyone who wants to learn as they build—whether you're an aspiring engineer, a junior developer, or an experienced engineer exploring an unfamiliar stack. Practice planning how the pieces fit together, anticipating failures, and checking the result while keeping ownership of the decisions.
 
+The core is plain Markdown in an [Agent Skill](https://agentskills.io/specification), with a self-contained export for agents that discover `.agents/skills/`. The existing Claude Code plugin adds its native commands and session hook. Learning notes use the same project-local format across agents.
+
 ## Get started
 
-You need [Claude Code](https://code.claude.com/docs/en/setup) and
-[Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore
-learning context and reset learning notes. No extra Python packages are needed.
+### Portable skill
 
-VibeWise has been approved for Anthropic's Claude directory, but isn't listed in
-the public community marketplace yet. I expect it to appear soon. In the meantime,
-install it in Claude Code through my GitHub marketplace:
+Clone this repository, then export the skill to an **existing project**:
+
+```sh
+git clone https://github.com/nykooi1/vibe-wise.git
+cd vibe-wise
+python3 scripts/install.py --project /absolute/path/to/your-project
+```
+
+Use `python` instead of `python3` if it runs Python 3 on your system. On Windows,
+use an absolute project path such as `C:/projects/my-app`; quote paths with spaces.
+
+The installer writes `.agents/skills/vibe-wise/` in that project. It includes the guides and reset helper, without plugin metadata, hooks, or your learning notes. Add `--dry-run` to preview the files without writing. Installation and the reset helper require [Python 3](https://www.python.org/downloads/); no extra Python packages are needed. To use Learn manually, an agent can read the guides directly without Python.
+
+Explicitly ask your agent to start VibeWise Learn in the project. For Codex, invoke `$vibe-wise` and ask to start Learn. Antigravity supports `/vibe-wise`; Devin Cloud uses `@skills:vibe-wise`, while Devin CLI supports `/vibe-wise`. These discovery paths and commands follow their documentation; they have not all been tested in live agent sessions. Installing the files does not itself start learning.
+
+See [portable setup and compatibility](docs/portable.md) for other skill directories, direct guide use, optional `AGENTS.md` instructions, and limitations.
+
+### Claude Code plugin
+
+You need [Claude Code](https://code.claude.com/docs/en/setup) and Python 3. The plugin uses Python to restore learning context and reset learning notes.
 
 Run these commands **one at a time** in Claude Code. First, add the marketplace:
 
@@ -47,7 +64,7 @@ You're building a Notion-style notes app: users sign in, create and edit private
 notes, and organize them into folders. Here, you're working through how notes and
 folders relate—and what should happen when someone deletes a folder.
 
-This condensed example is adapted from a real learning session. Later implementation
+This condensed Claude Code example is adapted from a real learning session. Later implementation
 steps are illustrative; intervening design discussions are omitted.
 
 **You:**
@@ -153,27 +170,27 @@ Implement this step.
 - Added and ran tests for shared notes and notes left without a folder; both passed.
 ```
 
-You don't need to know the answer already. Claude can explain unfamiliar concepts, sketch the relevant pieces, and help you tackle a smaller question. You stay involved in forming the plan. Answer in plain English; ask for more help or say “skip” whenever you want.
+You don't need to know the answer already. Your agent can explain unfamiliar concepts, sketch the relevant pieces, and help you tackle a smaller question. You stay involved in forming the plan. Answer in plain English; ask for more help or say “skip” whenever you want.
 
 Describing what you want sets the requirements. Build Checkpoints ask you to work
 out how it should function; a feature preference doesn't approve an architecture.
 
 | Checkpoint | What happens |
 | --- | --- |
-| **Build** | You reason through how to approach the problem with Claude. |
+| **Build** | You reason through how to approach the problem with your agent. |
 | **Design** | Review the design. **Confirm and continue** records it and continues planning; no code yet. |
-| **Implementation** | Review the specific code changes. **Implement this step** authorizes Claude to make them. |
+| **Implementation** | Review the specific code changes. **Implement this step** authorizes your agent to make them. |
 
 These aren't three mandatory stops. When ready to code, the Implementation
 checkpoint also confirms the design, skipping a separate Design checkpoint.
 Both confirmations offer **Discuss** to ask questions, clarify anything confusing,
 or explore alternatives before deciding.
 
-When Claude proposes additional implementation details, it separates them from your
+When your agent proposes additional implementation details, it separates them from your
 decisions in a short list or table explaining each addition and why it matters.
 You can question or change any item before proceeding.
 
-After implementation, Claude briefly explains what changed, how the key code works,
+After implementation, your agent briefly explains what changed, how the key code works,
 why it fits your decision, any tests it added or updated and what they cover, and
 which checks ran with their results. Ask to dig deeper anywhere it's unclear.
 
@@ -189,28 +206,35 @@ Experience changes the support you get, not your ownership of decisions:
 | Intermediate | Less introductory context; explore interactions and tradeoffs. |
 | Advanced | Probe difficult constraints, failure modes, and design assumptions. |
 
-Everyone reasons first. Claude adapts to what you demonstrate and how familiar you
+Everyone reasons first. Your agent adapts to what you demonstrate and how familiar you
 are with the stack. Checkpoint frequency—Light, Normal, or Frequent—is separate.
 
 - “Use fewer checkpoints.”
 - “Focus on backend architecture.”
 - “Use multiple-choice questions.”
 - “Just implement this one.”
-- “Pause learning.” Resume with `/vibe-wise:learn`.
+- “Pause learning.” Explicitly ask to resume Learn; in Claude Code, use `/vibe-wise:learn`.
 
-Preferences, learning notes, and a project map live in `.vibe-wise/` in your project. Learning mode resumes in future sessions and after compaction. Add `.vibe-wise/` to your `.gitignore` to keep your notes out of Git; the plugin won't change it silently.
+Preferences, learning notes, and a project map live in `.vibe-wise/` in your project. The Claude hook restores active learning in future sessions and after compaction. Other agents can restore the same notes through explicit Learn or the optional bootstrap described in [portable setup](docs/portable.md). Paused learning stays paused until you explicitly resume; a pending checkpoint still needs your answer. Add `.vibe-wise/` to your `.gitignore` to keep your notes out of Git; VibeWise won't change it silently.
 
-No extra account, backend, or telemetry. Saved notes are included in Claude's context, so your normal Claude Code data settings still apply.
+No extra account, backend, or telemetry. Saved notes are read into your agent's context, so that agent's normal data settings apply.
 
-To start learning this project from scratch, run `/vibe-wise:reset`. It shows the
-project and asks **Cancel / Reset learning**. After confirmation, it backs up your
-profile, progress, and project map inside the notes directory's `backups/` folder,
-then restarts onboarding. Source code and other projects stay untouched. To change
-your experience level or preferences, just tell Claude; no reset is needed.
+To start learning this project from scratch, explicitly ask for VibeWise Reset
+(or run `/vibe-wise:reset` in Claude Code). It shows the project and asks
+**Cancel / Reset learning**. After confirmation, it backs up your profile, progress,
+and project map inside the notes directory's `backups/` folder, then restarts
+onboarding. Source code and other projects stay untouched. To change your
+experience level or preferences, just tell your agent; no reset is needed.
 
 ## Updating
 
-For automatic updates, open `/plugin` → **Marketplaces** → **vibe-wise** →
+For a portable export, update your source checkout and rerun the installer for the
+same project. If the target already exists, the installer refuses to overwrite it;
+review and remove only the old exported skill directory before reinstalling.
+Project learning notes live separately in `.vibe-wise/` and are not part of the
+export. Preview an installation with `--dry-run`.
+
+For automatic Claude Code plugin updates, open `/plugin` → **Marketplaces** → **vibe-wise** →
 **Enable auto-update**. Auto-update is off by default for third-party marketplaces.
 Claude Code notifies you after an update; restart Claude Code to load the new version.
 

@@ -107,8 +107,11 @@ Build checkpoints and Design checkpoint discussions are opportunities to practic
 communicating engineering ideas in the learner's own words. Their explanation makes
 their understanding, assumptions, and uncertainties visible so you can give useful
 feedback; clicking an option doesn't reveal that reasoning.
-Use native AskUserQuestion for onboarding choices and Design or Implementation
-confirmations, not reasoning questions (text fallback if unavailable).
+Use the host's native question picker for onboarding choices and Design or
+Implementation confirmations when available and allowed for that kind of question.
+Otherwise ask in plain text and wait for an explicit answer. Ask reasoning
+questions in chat. Follow the host's tool limits and permission rules; a picker
+is optional and does not replace required tool approval.
 Reports need no question.
 Headings use `✦ <Type>: <description>` with exact labels:
 `Build checkpoint`, `Design checkpoint`, `Implementation checkpoint`, `System check`,
