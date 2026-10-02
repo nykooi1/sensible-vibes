@@ -1,0 +1,12 @@
+{
+  "description": "Restore VibeWise learning context when a Codex session starts or resumes.",
+  "vibe-wise-session": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 hooks/session_start.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

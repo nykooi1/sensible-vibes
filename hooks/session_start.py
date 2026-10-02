@@ -1,8 +1,13 @@
-"""Restore learning context when Claude Code starts or resumes a session.
+"""Restore learning context when an agent session starts or resumes.
 
-Claude Code sends a JSON event on stdin. For a project with active learning notes,
-we print JSON instructions telling Claude which files to read. Otherwise we stay
-silent. This hook does not teach, write notes, or parse conversation transcripts.
+Supported platforms:
+  Claude Code – sends hook_event_name='SessionStart' with cwd.
+  Codex CLI   – sends hook_event_name='SessionStart' with cwd and source
+                (startup | resume | clear | compact | fork).
+
+For a project with active learning notes, we print JSON instructions telling
+the agent which files to read. Otherwise we stay silent.
+This hook does not teach, write notes, or parse conversation transcripts.
 The events that trigger it (including compaction) are configured in hooks.json.
 """
 
@@ -55,7 +60,11 @@ def state_directory(cwd):
 
 
 def restore(payload):
-    """Build Claude's restoration instructions, or return None to do nothing."""
+    """Build the agent's restoration instructions, or return None to do nothing.
+
+    Both Claude Code and the Codex CLI fire hook_event_name='SessionStart' and
+    include a 'cwd' field, so they share the same code path and response format.
+    """
     if not isinstance(payload, dict) or payload.get("hook_event_name") != "SessionStart":
         return None
     raw_cwd = payload.get("cwd")
@@ -73,6 +82,11 @@ def restore(payload):
     # First-time onboarding happens through the Learn skill, not this hook.
     if not profile_is_active(state / "profile.md"):
         return None
+
+    # Detect whether we're running under Codex CLI (has 'source' field) or Claude.
+    # Both platforms use the same additionalContext response format, so we build
+    # the context string once and return the same response shape for both.
+    is_codex = "source" in payload
 
     # Bootstrap from source files instead of emitting partial notes or an incomplete
     # topic index. Output size is independent of the amount of learning history.
@@ -92,8 +106,9 @@ def restore(payload):
         "questions; do not repeat completed onboarding. If the profile is now "
         "paused, keep it paused: this hook is not an explicit Learn invocation."
     )
-    # Claude Code adds additionalContext to the model's context. These are reading
-    # instructions for Claude; the hook itself hasn't loaded the map or progress.
+    # Both Claude Code and Codex use additionalContext inside hookSpecificOutput.
+    # The hook itself hasn't loaded the map or progress; it only tells the agent
+    # which files to read.
     return {"hookSpecificOutput": {
         "hookEventName": "SessionStart", "additionalContext": context
     }}
