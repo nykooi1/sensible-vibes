@@ -252,6 +252,70 @@ class SessionStartTests(unittest.TestCase):
         self.assertNotIn("Use SQLite", context)
         self.assertNotIn("JSON storage", context)
 
+    def test_antigravity_pre_invocation_restores_active_state(self):
+        state = self.state()
+        payload = json.dumps({
+            "workspacePaths": [str(self.project)],
+            "invocationNum": 1,
+            "conversationId": "test-convo-123"
+        })
+        result = self.run_hook(raw=payload)
+        self.assertIsNotNone(result)
+        self.assertIn("injectSteps", result)
+        self.assertEqual(len(result["injectSteps"]), 1)
+        ephemeral = result["injectSteps"][0]["ephemeralMessage"]
+        self.assertIn("VibeWise is active for this project", ephemeral)
+        self.assertIn(str(state), ephemeral)
+
+    def test_antigravity_pre_invocation_inactive_state(self):
+        payload = json.dumps({
+            "workspacePaths": [str(self.project)],
+            "invocationNum": 1,
+            "conversationId": "test-convo-123"
+        })
+        result = self.run_hook(raw=payload)
+        self.assertIsNone(result)
+
+    def test_antigravity_pre_invocation_skips_subsequent_turns(self):
+        self.state()
+        payload = json.dumps({
+            "workspacePaths": [str(self.project)],
+            "invocationNum": 2,
+            "conversationId": "test-convo-123"
+        })
+        result = self.run_hook(raw=payload)
+        self.assertIsNone(result)
+
+    def test_codex_cli_session_start_restores_active_state(self):
+        state = self.state()
+        payload = json.dumps({
+            "hook_event_name": "SessionStart",
+            "source": "startup",
+            "cwd": str(self.project)
+        })
+        result = self.run_hook(raw=payload)
+        self.assertIsNotNone(result)
+        self.assertIn("hookSpecificOutput", result)
+        output = result["hookSpecificOutput"]
+        self.assertEqual(output["hookEventName"], "SessionStart")
+        self.assertIn("VibeWise is active for this project", output["additionalContext"])
+        self.assertIn(str(state), output["additionalContext"])
+
+    def test_root_manifests_validity(self):
+        root_hooks_file = ROOT / "hooks.json"
+        self.assertTrue(root_hooks_file.is_file())
+        root_hooks = json.loads(root_hooks_file.read_text(encoding="utf-8"))
+        self.assertIn("vibe-wise-session", root_hooks)
+        self.assertIn("SessionStart", root_hooks["vibe-wise-session"])
+        self.assertIn("PreInvocation", root_hooks["vibe-wise-session"])
+
+        root_plugin_file = ROOT / "plugin.json"
+        self.assertTrue(root_plugin_file.is_file())
+        root_plugin = json.loads(root_plugin_file.read_text(encoding="utf-8"))
+        self.assertEqual(root_plugin["name"], "vibe-wise")
+        self.assertIn("antigravity", root_plugin["keywords"])
+        self.assertIn("codex", root_plugin["keywords"])
+
 
 if __name__ == "__main__":
     unittest.main()
