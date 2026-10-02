@@ -1,7 +1,8 @@
 # Development
 
-V1 uses Claude Code skills, Markdown instructions, one read-only Python hook,
-and a small Python helper for confirmed learning resets.
+V1 uses skills, Markdown instructions, a read-only Python hook
+(compatible with Claude Code, Google Antigravity, and Codex CLI), and a small Python helper for confirmed learning resets.
+Root `plugin.json` and `hooks.json` manifests provide standard Agent Plugins support alongside `AGENTS.md` and Cursor rules.
 There are no packages to install. Python 3.8+ is sufficient for the hook and tests.
 
 ## Local checks
