@@ -10,36 +10,58 @@ For anyone who wants to learn as they build—whether you're an aspiring enginee
 
 ## Get started
 
-You need [Claude Code](https://code.claude.com/docs/en/setup) and
+You need an AI coding agent ([Claude Code](https://code.claude.com/docs/en/setup), [Google Antigravity](https://github.com/google/antigravity), [Codex CLI](https://github.com/openai/codex-cli), [Cursor](https://cursor.com), or [OpenCode](https://opencode.ai)) and
 [Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore
 learning context and reset learning notes. No extra Python packages are needed.
 
-VibeWise has been approved for Anthropic's Claude directory, but isn't listed in
-the public community marketplace yet. I expect it to appear soon. In the meantime,
-install it in Claude Code through my GitHub marketplace:
+### Claude Code
 
-Run these commands **one at a time** in Claude Code. First, add the marketplace:
+Run these commands **one at a time** in Claude Code:
 
 ```text
 /plugin marketplace add nykooi1/vibe-wise
-```
-
-After it finishes, install the plugin:
-
-```text
 /plugin install vibe-wise@vibe-wise
 ```
 
-**Enable automatic updates:** open `/plugin` → **Marketplaces** → **vibe-wise** →
-**Enable auto-update**. This is off by default for third-party marketplaces.
-
-Restart Claude Code in the project you want to work on, then run:
+Restart Claude Code in your project, then run:
 
 ```text
 /vibe-wise:learn
 ```
 
-Setup asks one question at a time. Use the arrow keys and Enter for choices; pick **Use defaults** to skip preference setup. Then ask Claude to build something. Starting fresh or joining an unfamiliar repository both work. For an existing repository, Claude first inspects the code and sketches a small system map.
+### Google Antigravity (AGY)
+
+Install the plugin from a local checkout, then start Antigravity in your project:
+
+```bash
+agy plugin install /absolute/path/to/vibe-wise
+```
+
+Run `/learn` or `/vibe-wise` to begin. The plugin's `PreInvocation` hook restores
+learning context on the first model invocation in an active project.
+
+### Codex CLI
+
+Register the marketplace and install VibeWise:
+
+```bash
+codex plugin marketplace add nykooi1/vibe-wise
+codex plugin add vibe-wise@vibe-wise
+```
+
+Or copy `AGENTS.md` into your workspace. Codex CLI automatically detects active learning state on startup.
+
+### Cursor
+
+Copy `.cursor/rules/vibe-wise.mdc` or the root `AGENTS.md` into your project. Use `@vibe-wise` in Cursor Composer or ask Cursor to start learning.
+
+### OpenCode
+
+OpenCode automatically indexes the root `AGENTS.md` on startup and activates VibeWise when `.vibe-wise/` is initialized.
+
+---
+
+Setup asks one question at a time. Use your tool's picker (or reply in text) for choices; pick **Use defaults** to skip preference setup. Then ask your AI to build something. Starting fresh or joining an unfamiliar repository both work. For an existing repository, AI first inspects the code and sketches a small system map.
 
 ## What it feels like
 
