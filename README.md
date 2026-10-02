@@ -10,13 +10,11 @@ For anyone who wants to learn as they build—whether you're an aspiring enginee
 
 ## Get started
 
-You need [Claude Code](https://code.claude.com/docs/en/setup) and
+You need [Claude Code](https://code.claude.com/docs/en/setup) or [Codex CLI](https://github.com/openai/codex-cli) and
 [Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore
 learning context and reset learning notes. No extra Python packages are needed.
 
-VibeWise has been approved for Anthropic's Claude directory, but isn't listed in
-the public community marketplace yet. I expect it to appear soon. In the meantime,
-install it in Claude Code through my GitHub marketplace:
+### Claude Code
 
 Run these commands **one at a time** in Claude Code. First, add the marketplace:
 
@@ -39,7 +37,18 @@ Restart Claude Code in the project you want to work on, then run:
 /vibe-wise:learn
 ```
 
-Setup asks one question at a time. Use the arrow keys and Enter for choices; pick **Use defaults** to skip preference setup. Then ask Claude to build something. Starting fresh or joining an unfamiliar repository both work. For an existing repository, Claude first inspects the code and sketches a small system map.
+### Codex CLI
+
+Run these commands in your terminal to register the marketplace and install the plugin for Codex CLI:
+
+```bash
+codex plugin marketplace add nykooi1/vibe-wise
+codex plugin add vibe-wise@vibe-wise
+```
+
+Restart Codex CLI in your project directory. The plugin automatically restores your learning context on session start.
+
+Setup asks one question at a time. Use the arrow keys and Enter for choices; pick **Use defaults** to skip preference setup. Then ask AI to build something. Starting fresh or joining an unfamiliar repository both work. For an existing repository, AI first inspects the code and sketches a small system map.
 
 ## What it feels like
 
