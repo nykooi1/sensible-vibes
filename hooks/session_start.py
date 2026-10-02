@@ -71,8 +71,8 @@ def restore(payload):
         return None
 
     # Antigravity fires PreInvocation before every turn.
-    # Only inject bootstrap instructions on the initial turn (invocationNum == 1).
-    if is_antigravity and payload.get("invocationNum", 1) != 1:
+    # Antigravity numbers model invocations from zero. Inject only on the first.
+    if is_antigravity and payload.get("invocationNum") != 0:
         return None
 
     raw_cwd = None

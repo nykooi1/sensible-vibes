@@ -31,8 +31,14 @@ Restart Claude Code in your project, then run:
 
 ### Google Antigravity (AGY)
 
-VibeWise supports Antigravity natively via root `plugin.json` and `hooks.json`. To run it in your project:
-Run `/learn` or `/vibe-wise` in Antigravity to begin. The `PreInvocation` hook automatically restores learning context for active projects.
+Install the plugin from a local checkout, then start Antigravity in your project:
+
+```bash
+agy plugin install /absolute/path/to/vibe-wise
+```
+
+Run `/learn` or `/vibe-wise` to begin. The plugin's `PreInvocation` hook restores
+learning context on the first model invocation in an active project.
 
 ### Codex CLI
 
