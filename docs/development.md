@@ -1,8 +1,23 @@
 # Development
 
-V1 uses Claude Code skills, Markdown instructions, one read-only Python hook,
-and a small Python helper for confirmed learning resets.
-There are no packages to install. Python 3.8+ is sufficient for the hook and tests.
+The root `SKILL.md` is the portable entry, with canonical learning instructions
+under `skills/`. `scripts/install.py` exports a self-contained bundle to a named
+project's `.agents/skills/vibe-wise/`; the shared `vibe_wise/state.py` helper supplies
+state lookup for the Claude restoration hook and confirmed Reset helper. The
+existing Claude plugin retains its metadata, commands, and native session hook.
+There are no packages to install. Python 3.8+ is sufficient for the helpers and tests.
+
+For portable installation, supported discovery paths, and explicit activation,
+see [Portable VibeWise](portable.md). The exporter includes guides and reset code,
+without plugin metadata, hooks, or project learning notes. It refuses existing
+targets; `--dry-run` performs a read-only preview.
+
+Portable conversation checks should cover explicit Learn, restoration of an
+active profile, paused learning staying paused until explicit resume, pending
+checkpoints surviving a new session, and confirmed Reset. Check one-question
+onboarding and text fallback when a native picker is unavailable. Verify behavior
+in the host itself before claiming live compatibility; passing file and helper
+tests does not establish that every agent follows the workflow.
 
 ## Local checks
 
@@ -25,6 +40,13 @@ repository boundaries, nearest-state selection, and symlink rejection.
 Reset tests cover read-only preview, confirmed backup/reset, stale confirmation,
 legacy and partial notes, nested projects, repeated backups, rejected symlinks,
 backup/write failures, and restoring incomplete onboarding after reset.
+
+The portable installation tests export into isolated projects, preserve existing
+notes and instructions, reject linked or existing destinations, and run Reset
+from an unrelated working directory after removing the source bundle. CI runs
+the full suite on Linux with Python 3.8 and 3.14, and the portable installation
+suite on Windows with Python 3.14. Native Claude hook tests use its shell command
+protocol and run on Linux.
 
 ## Conversation smoke tests
 
