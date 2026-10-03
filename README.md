@@ -4,15 +4,30 @@
 
 **You build. AI writes.**
 
-A Claude Code plugin that puts learning first and keeps you in control while AI writes the code you designed. Claude **asks for your approach first**, helps you examine tradeoffs, and explains unfamiliar concepts. You shape the design and decide when it's ready to implement. Claude writes the code, then explains what it changed and why.
+A plugin for Claude Code and Codex that puts learning first and keeps you in control while AI writes the code you designed. Your coding agent **asks for your approach first**, helps you examine tradeoffs, and explains unfamiliar concepts. You shape the design and decide when it's ready to implement. The agent writes the code, then explains what it changed and why.
 
 For anyone who wants to learn as they build—whether you're an aspiring engineer, a junior developer, or an experienced engineer exploring an unfamiliar stack. Practice planning how the pieces fit together, anticipating failures, and checking the result while keeping ownership of the decisions.
 
 ## Get started
 
-You need [Claude Code](https://code.claude.com/docs/en/setup) and
+You need [Claude Code](https://code.claude.com/docs/en/setup) or Codex, and
 [Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore
 learning context and reset learning notes. No extra Python packages are needed.
+
+### Codex
+
+Run these commands one at a time in a terminal:
+
+```text
+codex plugin marketplace add nykooi1/vibe-wise
+codex plugin add vibe-wise@vibe-wise
+```
+
+Trust VibeWise's session-start hook when Codex asks, so learning context can resume
+in later sessions. Then start a new Codex chat and ask it to start VibeWise learning
+mode.
+
+### Claude Code
 
 VibeWise has been approved for Anthropic's Claude directory, but isn't listed in
 the public community marketplace yet. I expect it to appear soon. In the meantime,
@@ -39,7 +54,7 @@ Restart Claude Code in the project you want to work on, then run:
 /vibe-wise:learn
 ```
 
-Setup asks one question at a time. Use the arrow keys and Enter for choices; pick **Use defaults** to skip preference setup. Then ask Claude to build something. Starting fresh or joining an unfamiliar repository both work. For an existing repository, Claude first inspects the code and sketches a small system map.
+Setup asks one question at a time. Use the arrow keys and Enter for choices when your agent offers them; pick **Use defaults** to skip preference setup. Then ask it to build something. Starting fresh or joining an unfamiliar repository both work. For an existing repository, it first inspects the code and sketches a small system map.
 
 ## What it feels like
 

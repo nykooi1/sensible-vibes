@@ -4,10 +4,10 @@ Guide one step at a time. Reuse answers already given; don't dump a questionnair
 If the profile says `Onboarding reset: pending`, reuse only answers given after
 that reset. Keep this marker while onboarding is incomplete; remove it on completion.
 Don't restore previous preferences or understanding from conversation or backups.
-For onboarding choices, call AskUserQuestion with exactly one question, 2–4 short options,
-brief descriptions, a header of at most 12 characters, and `multiSelect: false`.
-Use its native keyboard picker, not a printed imitation. If unavailable, ask one
-plain-text question. Open-ended answers belong in chat.
+For onboarding choices, use a native choice picker when available with exactly one
+question, 2–4 short options, brief descriptions, a header of at most 12 characters,
+and no multi-selection. Do not print an imitation of a native picker. If unavailable,
+ask one plain-text question. Open-ended answers belong in chat.
 
 Briefly explain: learning comes first. Ask for their approach, then give feedback,
 explain unfamiliar concepts, and ask follow-ups where needed. Their reasoning shapes

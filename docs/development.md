@@ -1,18 +1,35 @@
 # Development
 
-V1 uses Claude Code skills, Markdown instructions, one read-only Python hook,
+V1 uses portable agent skills, Markdown instructions, one read-only Python hook,
 and a small Python helper for confirmed learning resets.
 There are no packages to install. Python 3.8+ is sufficient for the hook and tests.
 
 ## Local checks
 
 ```sh
+python3 -m json.tool plugin.json >/dev/null
+python3 -m json.tool .agents/plugins/marketplace.json >/dev/null
 claude plugin validate .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/marketplace.json
 claude plugin validate skills
 python3 -B -m unittest discover -s tests -v
 git diff --check
 ```
+
+## Codex smoke test
+
+From the plugin root, install the local marketplace and package:
+
+```sh
+codex plugin marketplace add .
+codex plugin list --marketplace vibe-wise --available --json
+codex plugin add vibe-wise@vibe-wise
+```
+
+Start an isolated Codex session, explicitly ask it to use VibeWise Learn, and
+confirm it reads `skills/learn/SKILL.md` from the installed cache before asking the
+first onboarding question. Trust the session-start hook when Codex asks, then
+restart a session with active notes to confirm restoration.
 
 The tests execute the registered hook command with real JSON stdin in temporary
 projects. They cover activation, restoration, partial onboarding, paused mode,

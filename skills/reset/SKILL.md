@@ -19,15 +19,16 @@ code, dependencies, Git history, other projects, and plugin installation stay in
    ```
 
    The helper uses Learn's project-boundary and legacy-state lookup. If it reports
-   no notes, explain there's nothing to reset and suggest `/vibe-wise:learn`.
+   no notes, explain there's nothing to reset and suggest starting VibeWise Learn.
    On any error, stop and explain; don't improvise deletion commands.
 
 2. Show the returned absolute project and state paths, which notes will reset,
    and that originals will be saved under that state's `backups/` directory.
-   Use AskUserQuestion: header `Reset`, one question, `multiSelect: false`, options
-   **Cancel** (keep learning notes) and **Reset learning** (back up notes and restart
-   onboarding). Ask whether to reset learning for the named project. If the picker
-   is unavailable, ask the same question in text. Wait for an explicit answer.
+   Use a native choice picker when available: header `Reset`, one question, no
+   multi-selection, and options **Cancel** (keep learning notes) and **Reset learning**
+   (back up notes and restart onboarding). Ask whether to reset learning for the named
+   project. If the picker is unavailable, ask the same question in text. Wait for an
+   explicit answer.
    Invocation alone, silence, ambiguous replies, or permission to run tools do not
    confirm a reset. Cancel makes no changes, including to learner notes.
 
