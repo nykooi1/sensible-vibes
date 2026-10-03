@@ -1,7 +1,7 @@
-"""Restore learning context when Claude Code starts or resumes a session.
+"""Restore learning context when a supported coding agent starts or resumes a session.
 
-Claude Code sends a JSON event on stdin. For a project with active learning notes,
-we print JSON instructions telling Claude which files to read. Otherwise we stay
+The host sends a JSON event on stdin. For a project with active learning notes,
+we print JSON instructions telling the agent which files to read. Otherwise we stay
 silent. This hook does not teach, write notes, or parse conversation transcripts.
 The events that trigger it (including compaction) are configured in hooks.json.
 """
@@ -55,7 +55,7 @@ def state_directory(cwd):
 
 
 def restore(payload):
-    """Build Claude's restoration instructions, or return None to do nothing."""
+    """Build restoration instructions, or return None to do nothing."""
     if not isinstance(payload, dict) or payload.get("hook_event_name") != "SessionStart":
         return None
     raw_cwd = payload.get("cwd")
@@ -77,7 +77,7 @@ def restore(payload):
     # Bootstrap from source files instead of emitting partial notes or an incomplete
     # topic index. Output size is independent of the amount of learning history.
     context = (
-        "VibeWise is active for this project. Before responding or coding, use Read "
+        "VibeWise is active for this project. Before responding or coding, read "
         "to load the Learn guide and its referenced behavior instructions:\n"
         f"{PLUGIN_ROOT / 'skills/learn/SKILL.md'}\n\n"
         f"State directory: {state}\n"
@@ -92,8 +92,8 @@ def restore(payload):
         "questions; do not repeat completed onboarding. If the profile is now "
         "paused, keep it paused: this hook is not an explicit Learn invocation."
     )
-    # Claude Code adds additionalContext to the model's context. These are reading
-    # instructions for Claude; the hook itself hasn't loaded the map or progress.
+    # The host adds additionalContext to the model's context. These are reading
+    # instructions for the agent; the hook itself hasn't loaded the map or progress.
     return {"hookSpecificOutput": {
         "hookEventName": "SessionStart", "additionalContext": context
     }}
