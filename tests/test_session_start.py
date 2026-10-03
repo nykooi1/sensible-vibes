@@ -1,9 +1,14 @@
-"""Exercise the actual hook command in isolated new and existing projects."""
+"""Exercise the actual hook command in isolated new and existing projects.
+
+Every case runs through each shell that may execute the registered command on
+this platform, with Python available and with the shell fallbacks forced.
+"""
 
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -13,9 +18,47 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "hooks/hooks.json").read_text())
 REGISTRATION = CONFIG["hooks"]["SessionStart"][0]
+WINDOWS = os.name == "nt"
+# Windows variables PowerShell needs to start; never credentials or user settings.
+SYSTEM_VARIABLES = ("SYSTEMROOT", "WINDIR", "OS", "TEMP", "TMP", "PATHEXT", "COMSPEC")
 
 
-class SessionStartTests(unittest.TestCase):
+def hook_command():
+    # Claude Code substitutes the root inline, with forward slashes on Windows.
+    command = REGISTRATION["hooks"][0]["command"]
+    return command.replace("${CLAUDE_PLUGIN_ROOT}", ROOT.as_posix())
+
+
+def shell_argv(shell, command):
+    """How hosts run a command hook: sh -c, Git Bash, or PowerShell on Windows."""
+    if shell == "powershell":
+        return ["powershell", "-NoProfile", "-NonInteractive", "-Command", command]
+    return ["sh", "-c", command]
+
+
+def hook_env(python, extra_path=()):
+    """A minimal environment with Python available, or the fallbacks forced."""
+    tools = [shutil.which(name) for name in ("sh", "powershell")]
+    path = [*map(str, extra_path), str(Path(sys.executable).parent),
+            *(str(Path(tool).parent) for tool in tools if tool), os.defpath]
+    env = {"PATH": os.pathsep.join(path), "CLAUDE_PLUGIN_ROOT": str(ROOT)}
+    env.update((name, os.environ[name]) for name in SYSTEM_VARIABLES if name in os.environ)
+    if not python:
+        env["VIBE_WISE_PYTHON"] = "none"
+    return env
+
+
+def symlink(link, target, directory=False):
+    try:
+        link.symlink_to(target, target_is_directory=directory)
+    except OSError as error:  # Windows without symlink privilege
+        raise unittest.SkipTest(f"symlinks unavailable: {error}")
+
+
+class HookCases:
+    SHELL = "sh"
+    PYTHON = True
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="vibe-wise-test-")
         self.addCleanup(self.temp.cleanup)
@@ -43,27 +86,29 @@ class SessionStartTests(unittest.TestCase):
         )
         return directory
 
-    def run_hook(self, cwd=None, source="startup", raw=None, copilot=False):
-        payload = raw if raw is not None else json.dumps({
+    def payload(self, cwd=None, source="startup"):
+        return json.dumps({
             "hook_event_name": "SessionStart", "source": source,
             "cwd": str(cwd or self.project),
         })
-        # The hook needs a Python executable and its plugin location, not the
-        # developer's credentials or unrelated environment configuration.
-        env = {
-            "PATH": os.pathsep.join((str(Path(sys.executable).parent), os.defpath)),
-            "CLAUDE_PLUGIN_ROOT": str(ROOT),
-        }
+
+    def run_hook(self, cwd=None, source="startup", raw=None, copilot=False, extra_path=()):
+        payload = raw if raw is not None else self.payload(cwd, source)
+        env = hook_env(self.PYTHON, extra_path)
         if copilot:
             # Copilot CLI sets both roots when it runs a plugin's Claude-format hook.
             env["COPILOT_PLUGIN_ROOT"] = str(ROOT)
         result = subprocess.run(
-            REGISTRATION["hooks"][0]["command"], shell=True,
-            input=payload, text=True, capture_output=True, timeout=5,
-            env=env, cwd=self.root,
+            shell_argv(self.SHELL, hook_command()),
+            input=payload, encoding="utf-8", errors="replace", capture_output=True,
+            timeout=30, env=env, cwd=self.root,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stderr, "")
+        if self.SHELL == "powershell":
+            # PowerShell has no exec, reports it, and runs the next statement.
+            self.assertTrue(result.stderr == "" or "exec" in result.stderr, result.stderr)
+        else:
+            self.assertEqual(result.stderr, "")
         return json.loads(result.stdout) if result.stdout else None
 
     def context(self, **kwargs):
@@ -146,7 +191,7 @@ class SessionStartTests(unittest.TestCase):
 
     def test_symlinked_new_state_does_not_fall_back_to_legacy(self):
         self.state().rename(self.project / ".sensible-vibes")
-        (self.project / ".vibe-wise").symlink_to(self.root / "missing", target_is_directory=True)
+        symlink(self.project / ".vibe-wise", self.root / "missing", directory=True)
         self.assertIsNone(self.run_hook())
 
     def test_nested_repository_and_worktree_do_not_borrow_parent_profile(self):
@@ -238,14 +283,14 @@ class SessionStartTests(unittest.TestCase):
         outside = self.root / "outside.md"
         outside.write_text("Learning mode: active\nPRIVATE")
         (state / "profile.md").unlink()
-        (state / "profile.md").symlink_to(outside)
+        symlink(state / "profile.md", outside)
         self.assertIsNone(self.run_hook())
 
     def test_symlinked_state_directory_is_not_read(self):
         state = self.state()
         alternate = self.root / "alternate"
         alternate.mkdir()
-        (alternate / ".vibe-wise").symlink_to(state, target_is_directory=True)
+        symlink(alternate / ".vibe-wise", state, directory=True)
         self.assertIsNone(self.run_hook(cwd=alternate))
 
     def test_hook_never_changes_state(self):
@@ -267,6 +312,56 @@ class SessionStartTests(unittest.TestCase):
         self.assertIn("Restarting or compacting is not approval", context)
         self.assertNotIn("Use SQLite", context)
         self.assertNotIn("JSON storage", context)
+
+
+    def test_matches_python_hook_output(self):
+        # The fallbacks must give Claude the same instructions as the Python hook.
+        self.state()
+        nested = self.project / "src"
+        nested.mkdir()
+        for copilot in (False, True):
+            env = hook_env(python=True)
+            if copilot:
+                env["COPILOT_PLUGIN_ROOT"] = str(ROOT)
+            expected = subprocess.run(
+                [sys.executable, "-B", str(ROOT / "hooks/session_start.py")],
+                input=self.payload(nested), text=True, capture_output=True,
+                check=True, env=env,
+            )
+            with self.subTest(copilot=copilot):
+                self.assertEqual(self.run_hook(cwd=nested, copilot=copilot),
+                                 json.loads(expected.stdout))
+
+    def test_unusable_python_falls_back_to_shell(self):
+        # Python 2, or the Windows Store stub that only prints an install hint.
+        self.state()
+        fake = self.root / "fake-bin"
+        fake.mkdir()
+        for name in ("python3", "python", "py"):
+            if WINDOWS:
+                (fake / f"{name}.cmd").write_text(
+                    "@echo Python was not found 1>&2\n@exit /b 9009\n")
+            else:
+                script = fake / name
+                script.write_text("#!/bin/sh\necho 'Python was not found' >&2\nexit 9\n")
+                script.chmod(0o755)
+        self.assertIn(str(self.project / ".vibe-wise"), self.context(extra_path=[fake]))
+
+
+def variants():
+    """Shells that may run the hook here, each with and without Python."""
+    shells = ["powershell"] if WINDOWS else []
+    if shutil.which("sh"):
+        shells.append("sh")  # On Windows, Git Bash hands off to PowerShell.
+    for shell in shells:
+        for python in (True, False):
+            yield shell, python
+
+
+for _shell, _python in variants():
+    _name = f"{_shell.capitalize()}{'Python' if _python else 'Fallback'}HookTests"
+    globals()[_name] = type(_name, (HookCases, unittest.TestCase),
+                            {"SHELL": _shell, "PYTHON": _python})
 
 
 if __name__ == "__main__":

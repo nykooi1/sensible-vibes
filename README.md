@@ -10,9 +10,10 @@ For anyone who wants to learn as they build—whether you're an aspiring enginee
 
 ## Get started
 
-You need [Claude Code](https://code.claude.com/docs/en/setup) and
-[Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore
-learning context and reset learning notes. No extra Python packages are needed.
+You need [Claude Code](https://code.claude.com/docs/en/setup). VibeWise uses
+[Python 3](https://www.python.org/downloads/) when it's installed (no extra packages)
+and otherwise falls back to the tools every machine already has: PowerShell on
+Windows and `sh` on macOS and Linux. Nothing else needs to be installed.
 
 VibeWise has been approved for Anthropic's Claude directory, but isn't listed in
 the public community marketplace yet. I expect it to appear soon. In the meantime,
@@ -228,7 +229,8 @@ Run `claude plugin list` to check the installed version.
 ## Using with GitHub Copilot CLI
 
 VibeWise also runs in [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli)
-1.0.74 or later, which reads Claude Code plugins as-is. You still need Python 3.
+1.0.74 or later, which reads Claude Code plugins as-is. As in Claude Code, Python 3
+is used when available but isn't required.
 Run these commands **one at a time** in your terminal. First, add the marketplace:
 
 ```sh

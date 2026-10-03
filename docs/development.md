@@ -4,6 +4,48 @@ V1 uses Claude Code skills, Markdown instructions, one read-only Python hook,
 and a small Python helper for confirmed learning resets.
 There are no packages to install. Python 3.8+ is sufficient for the hook and tests.
 
+## Running without Python
+
+Some machines have no Python and users can't install it. Both helpers therefore
+have launchers in the shells every supported machine already has, which run the
+Python helper when a working Python 3.8+ exists and otherwise apply the same rules
+themselves:
+
+| Helper | macOS / Linux | Windows |
+| :- | :- | :- |
+| Session hook | `hooks/session_start.sh` (POSIX sh) | `hooks/session_start.ps1` (Windows PowerShell 5.1) |
+| Reset | `skills/reset/reset.sh` | `skills/reset/reset.ps1` |
+| Shared lookup | `hooks/common.sh` | `hooks/common.ps1` |
+
+Python is probed by running it, not just found on `PATH`: `python` may be
+Python 2, and Windows' `python3.exe` is often a Microsoft Store stub. The sh
+fallback uses only POSIX tools plus `head -c`, `mktemp`, and one of `sha256sum`,
+`shasum`, or `openssl`; it was checked with GNU, mawk, and busybox userlands
+(macOS's BSD awk is untested). Set `VIBE_WISE_PYTHON` to an interpreter command
+to use only that one, or to `none` to force the shell fallback.
+
+The hook command must work in every shell a host may use: `sh -c` on macOS/Linux,
+Git Bash on Windows, and PowerShell on Windows (Claude Code without Git Bash, and
+Copilot CLI always). It is a polyglot:
+
+```text
+exec sh ".../session_start.sh"; powershell -NoProfile ... -File ".../session_start.ps1"; exit 0
+```
+
+`sh` replaces itself with the sh launcher, which hands off to PowerShell under
+Git Bash because the event carries Windows paths. PowerShell has no `exec`; it
+reports that to stderr (debug logs only, since the hook exits 0) and runs the
+PowerShell launcher. `-ExecutionPolicy Bypass` lets the script run on machines
+with the default `Restricted` policy. It cannot override a policy enforced by
+Group Policy, and Constrained Language Mode (AppLocker/WDAC) is likely to block
+the .NET calls the PowerShell fallback uses (untested). The hook then stays
+silent, and running `/vibe-wise:learn` restores learning instead.
+
+The fallbacks emit the same JSON and reset fingerprint as Python; the tests
+compare them directly. Known differences are limited to edge cases: the sh hook
+leaves non-ASCII text unescaped (valid JSON), and the PowerShell fallback treats
+junctions like symlinks and doesn't resolve links in the working directory.
+
 ## Local checks
 
 ```sh
@@ -15,7 +57,10 @@ git diff --check
 ```
 
 The tests execute the registered hook command with real JSON stdin in temporary
-projects. They cover activation, restoration, partial onboarding, paused mode,
+projects, through each shell that may run it on the current platform (sh; on
+Windows also PowerShell and Git Bash), once with Python and once with the shell
+fallback forced. Reset tests likewise run `reset.py` and the platform launcher in
+both modes. Run the suite on Windows and on macOS or Linux to cover every fallback. They cover activation, restoration, partial onboarding, paused mode,
 subdirectories, repository/worktree boundaries, missing/invalid files, symlinks,
 constant-size restoration instructions as notes grow, and read-only behavior.
 They do not prove that Claude follows the instructions or teaches well.
