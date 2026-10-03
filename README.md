@@ -229,15 +229,22 @@ Run `claude plugin list` to check the installed version.
 
 VibeWise also runs in [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli)
 1.0.74 or later, which reads Claude Code plugins as-is. You still need Python 3.
-Install it from your terminal:
+Run these commands **one at a time** in your terminal. First, add the marketplace:
 
 ```sh
-copilot plugin install nykooi1/vibe-wise
+copilot plugin marketplace add nykooi1/vibe-wise
+```
+
+After it finishes, install the plugin:
+
+```sh
+copilot plugin install vibe-wise@vibe-wise
 ```
 
 Restart Copilot CLI in your project, then run `/vibe-wise:learn`. Reset is
 `/vibe-wise:reset`. Learning notes are shared: a project you started in Claude Code
-continues in Copilot CLI, and vice versa. To update, run `copilot plugin update vibe-wise`.
+continues in Copilot CLI, and vice versa. To update, run
+`copilot plugin update vibe-wise@vibe-wise`.
 
 ## License
 
