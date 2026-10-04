@@ -12,20 +12,23 @@ code, dependencies, Git history, other projects, and plugin installation stay in
 
 1. Run the read-only preview for the user's current project directory. Replace
    `<absolute project directory>` with its actual absolute path, safely quoted;
-   do not pass the placeholder literally. On macOS or Linux:
+   do not pass the placeholder literally. Wherever `sh` exists (macOS, Linux, and
+   Windows with Git Bash):
 
    ```sh
    sh "${CLAUDE_PLUGIN_ROOT}/skills/reset/reset.sh" --cwd "<absolute project directory>"
    ```
 
-   On Windows, from any shell:
+   On Windows without `sh`:
 
    ```sh
    powershell -NoProfile -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/skills/reset/reset.ps1" --cwd "<absolute project directory>"
    ```
 
    Both run the Python helper when Python 3 works, and otherwise the same steps
-   in the shell; don't install Python or call `reset.py` directly. The helper uses Learn's project-boundary and legacy-state lookup. If it reports
+   in the shell; don't install Python. Only if Windows policy blocks the script
+   and `python` works, run `${CLAUDE_PLUGIN_ROOT}/skills/reset/reset.py` with the
+   same arguments instead. The helper uses Learn's project-boundary and legacy-state lookup. If it reports
    no notes, explain there's nothing to reset and suggest `/vibe-wise:learn`.
    On any error, stop and explain; don't improvise deletion commands.
 
@@ -40,7 +43,7 @@ code, dependencies, Git history, other projects, and plugin installation stay in
 
 3. Only after **Reset learning**, run the same helper with the original working
    directory and the preview's exact `confirmation` value, safely quoted, by
-   appending `--confirm "<confirmation>"` to the preview command, e.g. on macOS or Linux:
+   appending `--confirm "<confirmation>"` to the preview command, e.g. with `sh`:
 
    ```sh
    sh "${CLAUDE_PLUGIN_ROOT}/skills/reset/reset.sh" --cwd "<original cwd>" --confirm "<confirmation>"

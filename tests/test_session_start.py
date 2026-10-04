@@ -36,9 +36,9 @@ def shell_argv(shell, command):
     return ["sh", "-c", command]
 
 
-def hook_env(python, extra_path=()):
+def hook_env(python, extra_path=(), powershell=True):
     """A minimal environment with Python available, or the fallbacks forced."""
-    tools = [shutil.which(name) for name in ("sh", "powershell")]
+    tools = [shutil.which(name) for name in ("sh", "powershell" if powershell else "")]
     path = [*map(str, extra_path), str(Path(sys.executable).parent),
             *(str(Path(tool).parent) for tool in tools if tool), os.defpath]
     env = {"PATH": os.pathsep.join(path), "CLAUDE_PLUGIN_ROOT": str(ROOT)}
@@ -92,9 +92,10 @@ class HookCases:
             "cwd": str(cwd or self.project),
         })
 
-    def run_hook(self, cwd=None, source="startup", raw=None, copilot=False, extra_path=()):
+    def run_hook(self, cwd=None, source="startup", raw=None, copilot=False, extra_path=(),
+                 powershell=True):
         payload = raw if raw is not None else self.payload(cwd, source)
-        env = hook_env(self.PYTHON, extra_path)
+        env = hook_env(self.PYTHON, extra_path, powershell)
         if copilot:
             # Copilot CLI sets both roots when it runs a plugin's Claude-format hook.
             env["COPILOT_PLUGIN_ROOT"] = str(ROOT)
@@ -331,6 +332,13 @@ class HookCases:
             with self.subTest(copilot=copilot):
                 self.assertEqual(self.run_hook(cwd=nested, copilot=copilot),
                                  json.loads(expected.stdout))
+
+    def test_git_bash_uses_python_without_powershell(self):
+        # A policy may block PowerShell scripts; that must not disable working Python.
+        if not (WINDOWS and self.SHELL == "sh" and self.PYTHON):
+            self.skipTest("Git Bash with Python on Windows only")
+        self.state()
+        self.assertIn(str(self.project / ".vibe-wise"), self.context(powershell=False))
 
     def test_unusable_python_falls_back_to_shell(self):
         # Python 2, or the Windows Store stub that only prints an install hint.

@@ -1,7 +1,7 @@
 """Reset only confirmed project notes, preserving recoverable originals.
 
-The shared cases run against reset.py and against this platform's launcher
-(reset.ps1 on Windows, reset.sh elsewhere), with and without Python.
+The shared cases run against reset.py and against each launcher usable on this
+platform (reset.sh, plus reset.ps1 on Windows), with and without Python.
 """
 
 import importlib.util
@@ -258,28 +258,32 @@ class PythonResetTests(ResetCases, unittest.TestCase):
 
 
 class LauncherResetCases(ResetCases):
-    """Run the launcher the reset skill tells Claude to use on this platform."""
+    """Run a launcher the reset skill tells Claude to use."""
+    SHELL = "sh"
     PYTHON = True
 
-    def reset(self, cwd, confirmation=None):
-        launcher = ROOT / "skills/reset" / ("reset.ps1" if WINDOWS else "reset.sh")
-        if WINDOWS:
-            argv = ["powershell", "-NoProfile", "-NonInteractive",
-                    "-ExecutionPolicy", "Bypass", "-File", str(launcher)]
-        else:
-            argv = ["sh", str(launcher)]
-        argv += ["--cwd", str(cwd)]
-        if confirmation is not None:
-            argv += ["--confirm", confirmation]
-        tools = [shutil.which(name) for name in ("sh", "powershell")]
+    def argv(self):
+        if self.SHELL == "powershell":
+            return ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
+                    "Bypass", "-File", str(ROOT / "skills/reset/reset.ps1")]
+        return ["sh", str(ROOT / "skills/reset/reset.sh")]
+
+    def env(self, powershell=True):
+        tools = [shutil.which(name) for name in ("sh", "powershell" if powershell else "")]
         path = [str(Path(sys.executable).parent),
                 *(str(Path(tool).parent) for tool in tools if tool), os.defpath]
         env = {"PATH": os.pathsep.join(path)}
         env.update((name, os.environ[name]) for name in SYSTEM_VARIABLES if name in os.environ)
         if not self.PYTHON:
             env["VIBE_WISE_PYTHON"] = "none"
+        return env
+
+    def reset(self, cwd, confirmation=None, powershell=True):
+        argv = self.argv() + ["--cwd", str(cwd)]
+        if confirmation is not None:
+            argv += ["--confirm", confirmation]
         result = subprocess.run(argv, capture_output=True, encoding="utf-8",
-                                errors="replace", timeout=60, env=env)
+                                errors="replace", timeout=60, env=self.env(powershell))
         self.assertEqual(result.stderr, "")
         output = json.loads(result.stdout)
         if output["status"] == "error":
@@ -289,25 +293,37 @@ class LauncherResetCases(ResetCases):
         return output
 
     def test_usage_errors(self):
-        launcher = ROOT / "skills/reset" / ("reset.ps1" if WINDOWS else "reset.sh")
-        argv = (["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
-                 "Bypass", "-File", str(launcher)] if WINDOWS else ["sh", str(launcher)])
-        env = dict(os.environ, VIBE_WISE_PYTHON="" if self.PYTHON else "none")
         for args in ([], ["--confirm", "x"], ["--cwd"], ["--unknown", "x"]):
             with self.subTest(args=args):
-                result = subprocess.run(argv + args, capture_output=True, text=True, env=env)
+                result = subprocess.run(self.argv() + args, capture_output=True,
+                                        text=True, env=self.env())
                 self.assertEqual(result.returncode, 2)
                 self.assertEqual(result.stdout, "")
                 self.assertIn("usage", result.stderr)
 
+    def test_git_bash_uses_python_without_powershell(self):
+        # A policy may block PowerShell scripts; that must not disable working Python.
+        if not (WINDOWS and self.SHELL == "sh" and self.PYTHON):
+            self.skipTest("Git Bash with Python on Windows only")
+        state, _ = self.notes()
+        preview = self.reset(self.project, powershell=False)
+        self.assertEqual(preview["state"], str(state))
 
-class LauncherPythonResetTests(LauncherResetCases, unittest.TestCase):
-    PYTHON = True
+
+def variants():
+    """Launchers the skill may use here, each with and without Python."""
+    shells = ["powershell"] if WINDOWS else []
+    if shutil.which("sh"):
+        shells.append("sh")  # On Windows, Git Bash hands off to PowerShell.
+    for shell in shells:
+        for python in (True, False):
+            yield shell, python
 
 
-class LauncherFallbackResetTests(LauncherResetCases, unittest.TestCase):
-    PYTHON = False
-
+for _shell, _python in variants():
+    _name = f"{_shell.capitalize()}{'Python' if _python else 'Fallback'}ResetTests"
+    globals()[_name] = type(_name, (LauncherResetCases, unittest.TestCase),
+                            {"SHELL": _shell, "PYTHON": _python})
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,14 +32,33 @@ Copilot CLI always). It is a polyglot:
 exec sh ".../session_start.sh"; powershell -NoProfile ... -File ".../session_start.ps1"; exit 0
 ```
 
-`sh` replaces itself with the sh launcher, which hands off to PowerShell under
-Git Bash because the event carries Windows paths. PowerShell has no `exec`; it
-reports that to stderr (debug logs only, since the hook exits 0) and runs the
-PowerShell launcher. `-ExecutionPolicy Bypass` lets the script run on machines
-with the default `Restricted` policy. It cannot override a policy enforced by
-Group Policy, and Constrained Language Mode (AppLocker/WDAC) is likely to block
-the .NET calls the PowerShell fallback uses (untested). The hook then stays
-silent, and running `/vibe-wise:learn` restores learning instead.
+`sh` replaces itself with the sh launcher. Under Git Bash it runs Python if it
+works and otherwise hands off to PowerShell, because the event carries Windows
+paths. PowerShell has no `exec`; it reports that to stderr (debug logs only,
+since the hook exits 0) and runs the PowerShell launcher.
+
+`-ExecutionPolicy Bypass` lets the script run on machines with the default
+`Restricted` policy. It cannot override a policy enforced by Group Policy, and
+Constrained Language Mode (AppLocker/WDAC) is likely to block the .NET calls the
+PowerShell fallback uses. Both are untested. Git Bash still runs a working Python
+without PowerShell, so only PowerShell hosts (Copilot CLI, or Claude Code without
+Git Bash) lose the hook there. It then stays silent, and `/vibe-wise:learn`
+restores learning instead. To check on a disposable Windows VM:
+
+1. Group Policy: in an admin PowerShell, set `EnableScripts` = 1 and
+   `ExecutionPolicy` = `AllSigned` (or `EnableScripts` = 0) under
+   `HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell`, and confirm that
+   `Get-ExecutionPolicy -List` shows `MachinePolicy`. `RemoteSigned` doesn't
+   block git-cloned files, which carry no download mark.
+2. Constrained Language Mode: use a WDAC or AppLocker policy, or set
+   `__PSLockdownPolicy=4` as a *system* environment variable (as a process
+   variable it has no effect). New PowerShell sessions must report
+   `$ExecutionContext.SessionState.LanguageMode` as `ConstrainedLanguage`.
+3. In a project with active notes, pipe a SessionStart event into each launcher
+   with and without `VIBE_WISE_PYTHON=none`, then start `claude -p` and
+   `copilot -p` sessions. Expect exit code 0 and either the restore context or
+   no output, never a failed session. Then check that `/vibe-wise:learn` and
+   `/vibe-wise:reset` still work.
 
 The fallbacks emit the same JSON and reset fingerprint as Python; the tests
 compare them directly. Known differences are limited to edge cases: the sh hook

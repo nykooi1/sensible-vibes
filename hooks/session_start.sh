@@ -5,16 +5,17 @@
 # silent for inactive projects, and never blocks a session from starting.
 
 HOOKS=$(cd -P -- "$(dirname -- "$0")" && pwd -P) || exit 0
-
-# Git Bash on Windows: the event carries Windows paths, which PowerShell handles.
-if [ "${OS-}" = Windows_NT ]; then
-    exec powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass \
-        -File "$HOOKS/session_start.ps1"
-fi
 . "$HOOKS/common.sh"
 
 if python=$(find_python); then
     exec "$python" "$HOOKS/session_start.py"
+fi
+
+# Git Bash on Windows: the event carries Windows paths, which PowerShell handles.
+# Python came first so a policy that blocks scripts can't disable a working Python.
+if [ "${OS-}" = Windows_NT ]; then
+    exec powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+        -File "$HOOKS/session_start.ps1"
 fi
 
 profile_is_active() {

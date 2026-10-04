@@ -10,6 +10,13 @@ if python=$(find_python); then
     exec "$python" "$HERE/reset.py" "$@"
 fi
 
+# Git Bash on Windows: the project path is a Windows path, which PowerShell handles.
+# Python came first so a policy that blocks scripts can't disable a working Python.
+if [ "${OS-}" = Windows_NT ]; then
+    exec powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+        -File "$HERE/reset.ps1" "$@"
+fi
+
 NOTES="profile.md progress.md project-map.md"
 
 usage() {

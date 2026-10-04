@@ -6,7 +6,9 @@
 find_python() {
     case "${VIBE_WISE_PYTHON-}" in
         none) return 1 ;;
-        "") candidates="python3 python" ;;
+        "") candidates="python3 python"
+            # Git Bash: the Windows py launcher is often the only working command.
+            [ "${OS-}" = Windows_NT ] && candidates="$candidates py" ;;
         *) candidates=$VIBE_WISE_PYTHON ;;
     esac
     for candidate in $candidates; do
