@@ -10,9 +10,10 @@ For anyone who wants to learn as they build—whether you're an aspiring enginee
 
 ## Get started
 
-You need [Claude Code](https://code.claude.com/docs/en/setup) and
-[Python 3](https://www.python.org/downloads/). VibeWise uses Python to restore
-learning context and reset learning notes. No extra Python packages are needed.
+You need [Claude Code](https://code.claude.com/docs/en/setup). VibeWise uses
+[Python 3](https://www.python.org/downloads/) when it's installed (no extra packages)
+and otherwise falls back to the tools every machine already has: PowerShell on
+Windows and `sh` on macOS and Linux. Nothing else needs to be installed.
 
 VibeWise has been approved for Anthropic's Claude directory, but isn't listed in
 the public community marketplace yet. I expect it to appear soon. In the meantime,
@@ -224,6 +225,28 @@ claude plugin update vibe-wise@vibe-wise
 Then restart Claude Code. Your project learning notes stay intact; no reset is needed.
 Run `claude plugin list` to check the installed version.
 [More about plugin updates](https://code.claude.com/docs/en/discover-plugins#keep-plugins-updated).
+
+## Using with GitHub Copilot CLI
+
+VibeWise also runs in [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli)
+1.0.74 or later, which reads Claude Code plugins as-is. As in Claude Code, Python 3
+is used when available but isn't required.
+Run these commands **one at a time** in your terminal. First, add the marketplace:
+
+```sh
+copilot plugin marketplace add nykooi1/vibe-wise
+```
+
+After it finishes, install the plugin:
+
+```sh
+copilot plugin install vibe-wise@vibe-wise
+```
+
+Restart Copilot CLI in your project, then run `/vibe-wise:learn`. Reset is
+`/vibe-wise:reset`. Learning notes are shared: a project you started in Claude Code
+continues in Copilot CLI, and vice versa. To update, run
+`copilot plugin update vibe-wise@vibe-wise`.
 
 ## License
 

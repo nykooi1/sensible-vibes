@@ -4,6 +4,67 @@ V1 uses Claude Code skills, Markdown instructions, one read-only Python hook,
 and a small Python helper for confirmed learning resets.
 There are no packages to install. Python 3.8+ is sufficient for the hook and tests.
 
+## Running without Python
+
+Some machines have no Python and users can't install it. Both helpers therefore
+have launchers in the shells every supported machine already has, which run the
+Python helper when a working Python 3.8+ exists and otherwise apply the same rules
+themselves:
+
+| Helper | macOS / Linux | Windows |
+| :- | :- | :- |
+| Session hook | `hooks/session_start.sh` (POSIX sh) | `hooks/session_start.ps1` (Windows PowerShell 5.1) |
+| Reset | `skills/reset/reset.sh` | `skills/reset/reset.ps1` |
+| Shared lookup | `hooks/common.sh` | `hooks/common.ps1` |
+
+Python is probed by running it, not just found on `PATH`: `python` may be
+Python 2, and Windows' `python3.exe` is often a Microsoft Store stub. The sh
+fallback uses only POSIX tools plus `head -c`, `mktemp`, and one of `sha256sum`,
+`shasum`, or `openssl`; it was checked with GNU, mawk, and busybox userlands
+(macOS's BSD awk is untested). Set `VIBE_WISE_PYTHON` to an interpreter command
+to use only that one, or to `none` to force the shell fallback.
+
+The hook command must work in every shell a host may use: `sh -c` on macOS/Linux,
+Git Bash on Windows, and PowerShell on Windows (Claude Code without Git Bash, and
+Copilot CLI always). It is a polyglot:
+
+```text
+exec sh ".../session_start.sh"; powershell -NoProfile ... -File ".../session_start.ps1"; exit 0
+```
+
+`sh` replaces itself with the sh launcher. Under Git Bash it runs Python if it
+works and otherwise hands off to PowerShell, because the event carries Windows
+paths. PowerShell has no `exec`; it reports that to stderr (debug logs only,
+since the hook exits 0) and runs the PowerShell launcher.
+
+`-ExecutionPolicy Bypass` lets the script run on machines with the default
+`Restricted` policy. It cannot override a policy enforced by Group Policy, and
+Constrained Language Mode (AppLocker/WDAC) is likely to block the .NET calls the
+PowerShell fallback uses. Both are untested. Git Bash still runs a working Python
+without PowerShell, so only PowerShell hosts (Copilot CLI, or Claude Code without
+Git Bash) lose the hook there. It then stays silent, and `/vibe-wise:learn`
+restores learning instead. To check on a disposable Windows VM:
+
+1. Group Policy: in an admin PowerShell, set `EnableScripts` = 1 and
+   `ExecutionPolicy` = `AllSigned` (or `EnableScripts` = 0) under
+   `HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell`, and confirm that
+   `Get-ExecutionPolicy -List` shows `MachinePolicy`. `RemoteSigned` doesn't
+   block git-cloned files, which carry no download mark.
+2. Constrained Language Mode: use a WDAC or AppLocker policy, or set
+   `__PSLockdownPolicy=4` as a *system* environment variable (as a process
+   variable it has no effect). New PowerShell sessions must report
+   `$ExecutionContext.SessionState.LanguageMode` as `ConstrainedLanguage`.
+3. In a project with active notes, pipe a SessionStart event into each launcher
+   with and without `VIBE_WISE_PYTHON=none`, then start `claude -p` and
+   `copilot -p` sessions. Expect exit code 0 and either the restore context or
+   no output, never a failed session. Then check that `/vibe-wise:learn` and
+   `/vibe-wise:reset` still work.
+
+The fallbacks emit the same JSON and reset fingerprint as Python; the tests
+compare them directly. Known differences are limited to edge cases: the sh hook
+leaves non-ASCII text unescaped (valid JSON), and the PowerShell fallback treats
+junctions like symlinks and doesn't resolve links in the working directory.
+
 ## Local checks
 
 ```sh
@@ -15,7 +76,10 @@ git diff --check
 ```
 
 The tests execute the registered hook command with real JSON stdin in temporary
-projects. They cover activation, restoration, partial onboarding, paused mode,
+projects, through each shell that may run it on the current platform (sh; on
+Windows also PowerShell and Git Bash), once with Python and once with the shell
+fallback forced. Reset tests likewise run `reset.py` and the platform launcher in
+both modes. Run the suite on Windows and on macOS or Linux to cover every fallback. They cover activation, restoration, partial onboarding, paused mode,
 subdirectories, repository/worktree boundaries, missing/invalid files, symlinks,
 constant-size restoration instructions as notes grow, and read-only behavior.
 They do not prove that Claude follows the instructions or teaches well.
@@ -192,6 +256,12 @@ Verified against current first-party documentation on 2026-09-28:
   profile/map, search all of progress for pending decisions, and read the complete
   pending sections plus relevant topics before continuing. Hook output does not
   grow with learning history; Claude's subsequent file reads still consume context.
+- [Copilot CLI hooks](https://docs.github.com/en/copilot/reference/hooks-configuration):
+  Copilot CLI loads `.claude-plugin/plugin.json` and the Claude-format
+  `hooks/hooks.json` unchanged, and sets `CLAUDE_PLUGIN_ROOT` plus
+  `COPILOT_PLUGIN_ROOT`. It reads only a top-level `additionalContext` and
+  silently drops `hookSpecificOutput`, so the hook emits the flat form when
+  `COPILOT_PLUGIN_ROOT` is set. Verified in Copilot CLI 1.0.91 debug logs.
 - [Marketplace creation](https://code.claude.com/docs/en/plugin-marketplaces):
   the small catalog points to this repository's plugin root. The GitHub install
   instructions work after these files are published to the remote repository.

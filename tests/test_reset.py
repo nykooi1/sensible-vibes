@@ -1,8 +1,14 @@
-"""Reset only confirmed project notes, preserving recoverable originals."""
+"""Reset only confirmed project notes, preserving recoverable originals.
+
+The shared cases run against reset.py and against each launcher usable on this
+platform (reset.sh, plus reset.ps1 on Windows), with and without Python.
+"""
 
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -12,12 +18,25 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "skills/reset/reset.py"
+WINDOWS = os.name == "nt"
+# Windows variables PowerShell needs to start; never credentials or user settings.
+SYSTEM_VARIABLES = ("SYSTEMROOT", "WINDIR", "OS", "TEMP", "TMP", "PATHEXT", "COMSPEC")
 spec = importlib.util.spec_from_file_location("vibe_wise_reset", SCRIPT)
 reset_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reset_module)
 
 
-class ResetTests(unittest.TestCase):
+def symlink(link, target, directory=False):
+    try:
+        link.symlink_to(target, target_is_directory=directory)
+    except OSError as error:  # Windows without symlink privilege
+        raise unittest.SkipTest(f"symlinks unavailable: {error}")
+
+
+class ResetCases:
+    def reset(self, cwd, confirmation=None):
+        return reset_module.reset(cwd, confirmation)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="vibe-wise-reset-")
         self.addCleanup(self.temp.cleanup)
@@ -39,28 +58,14 @@ class ResetTests(unittest.TestCase):
         return state, originals
 
     def preview(self, cwd=None):
-        return reset_module.reset(cwd or self.project)
+        return self.reset(cwd or self.project)
 
     def confirm(self, cwd=None):
         preview = self.preview(cwd)
-        return reset_module.reset(cwd or self.project, preview["confirmation"])
+        return self.reset(cwd or self.project, preview["confirmation"])
 
     def assert_originals(self, state, originals):
         self.assertEqual(originals, {name: (state / name).read_bytes() for name in originals})
-
-    def test_preview_and_cancel_leave_notes_untouched(self):
-        state, originals = self.notes()
-        result = subprocess.run(
-            [sys.executable, "-B", str(SCRIPT), "--cwd", str(self.project)],
-            capture_output=True, text=True, check=True,
-        )
-        preview = json.loads(result.stdout)
-        self.assertEqual(preview["status"], "preview")
-        self.assertEqual(preview["state"], str(state))
-        self.assertEqual(preview["project"], str(self.project))
-        self.assert_originals(state, originals)
-        self.assertEqual(set(p.name for p in state.iterdir()), set(originals))
-        # Cancel means no confirmed command is run; preview has no side effects.
 
     def test_reset_backs_up_only_notes_and_restarts_onboarding(self):
         state, originals = self.notes()
@@ -153,7 +158,7 @@ class ResetTests(unittest.TestCase):
         token = self.preview()["confirmation"]
         (state / "progress.md").write_text("new understanding\n")
         with self.assertRaisesRegex(ValueError, "changed"):
-            reset_module.reset(self.project, token)
+            self.reset(self.project, token)
         self.assertEqual((state / "progress.md").read_text(), "new understanding\n")
         self.assertFalse((state / "backups").exists())
 
@@ -163,7 +168,7 @@ class ResetTests(unittest.TestCase):
         other.mkdir()
         state, originals = self.notes(other)
         with self.assertRaisesRegex(ValueError, "changed"):
-            reset_module.reset(other, self.preview()["confirmation"])
+            self.reset(other, self.preview()["confirmation"])
         self.assert_originals(state, originals)
         self.assertFalse((state / "backups").exists())
 
@@ -171,7 +176,7 @@ class ResetTests(unittest.TestCase):
         outside = self.root / "outside"
         outside.mkdir()
         target, originals = self.notes(outside)
-        (self.project / ".vibe-wise").symlink_to(target, target_is_directory=True)
+        symlink(self.project / ".vibe-wise", target, directory=True)
         self.assertEqual(self.preview()["status"], "no_notes")
         self.assert_originals(target, originals)
 
@@ -179,7 +184,7 @@ class ResetTests(unittest.TestCase):
         state, _ = self.notes()
         path = state / "profile.md"
         path.unlink()
-        path.symlink_to(state / "progress.md")
+        symlink(path, state / "progress.md")
         with self.assertRaisesRegex(ValueError, "non-regular"):
             self.preview()
         path.unlink()
@@ -192,11 +197,34 @@ class ResetTests(unittest.TestCase):
         state, originals = self.notes()
         outside = self.root / "outside"
         outside.mkdir()
-        (state / "backups").symlink_to(outside, target_is_directory=True)
+        symlink(state / "backups", outside, directory=True)
         with self.assertRaisesRegex(ValueError, "Backup path"):
             self.confirm()
         self.assert_originals(state, originals)
         self.assertEqual(list(outside.iterdir()), [])
+
+    def test_preview_matches_python(self):
+        # Same paths, files, and fingerprint: a preview from either confirms in both.
+        self.notes()
+        nested = self.project / "src"
+        nested.mkdir()
+        self.assertEqual(self.preview(nested), reset_module.reset(nested))
+
+
+class PythonResetTests(ResetCases, unittest.TestCase):
+    def test_preview_and_cancel_leave_notes_untouched(self):
+        state, originals = self.notes()
+        result = subprocess.run(
+            [sys.executable, "-B", str(SCRIPT), "--cwd", str(self.project)],
+            capture_output=True, text=True, check=True,
+        )
+        preview = json.loads(result.stdout)
+        self.assertEqual(preview["status"], "preview")
+        self.assertEqual(preview["state"], str(state))
+        self.assertEqual(preview["project"], str(self.project))
+        self.assert_originals(state, originals)
+        self.assertEqual(set(p.name for p in state.iterdir()), set(originals))
+        # Cancel means no confirmed command is run; preview has no side effects.
 
     def test_backup_failure_does_not_modify_active_notes(self):
         state, originals = self.notes()
@@ -228,6 +256,74 @@ class ResetTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assert_originals(backups[0], originals)
 
+
+class LauncherResetCases(ResetCases):
+    """Run a launcher the reset skill tells Claude to use."""
+    SHELL = "sh"
+    PYTHON = True
+
+    def argv(self):
+        if self.SHELL == "powershell":
+            return ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
+                    "Bypass", "-File", str(ROOT / "skills/reset/reset.ps1")]
+        return ["sh", str(ROOT / "skills/reset/reset.sh")]
+
+    def env(self, powershell=True):
+        tools = [shutil.which(name) for name in ("sh", "powershell" if powershell else "")]
+        path = [str(Path(sys.executable).parent),
+                *(str(Path(tool).parent) for tool in tools if tool), os.defpath]
+        env = {"PATH": os.pathsep.join(path)}
+        env.update((name, os.environ[name]) for name in SYSTEM_VARIABLES if name in os.environ)
+        if not self.PYTHON:
+            env["VIBE_WISE_PYTHON"] = "none"
+        return env
+
+    def reset(self, cwd, confirmation=None, powershell=True):
+        argv = self.argv() + ["--cwd", str(cwd)]
+        if confirmation is not None:
+            argv += ["--confirm", confirmation]
+        result = subprocess.run(argv, capture_output=True, encoding="utf-8",
+                                errors="replace", timeout=60, env=self.env(powershell))
+        self.assertEqual(result.stderr, "")
+        output = json.loads(result.stdout)
+        if output["status"] == "error":
+            self.assertEqual(result.returncode, 1)
+            raise ValueError(output["message"])
+        self.assertEqual(result.returncode, 0)
+        return output
+
+    def test_usage_errors(self):
+        for args in ([], ["--confirm", "x"], ["--cwd"], ["--unknown", "x"]):
+            with self.subTest(args=args):
+                result = subprocess.run(self.argv() + args, capture_output=True,
+                                        text=True, env=self.env())
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("usage", result.stderr)
+
+    def test_git_bash_uses_python_without_powershell(self):
+        # A policy may block PowerShell scripts; that must not disable working Python.
+        if not (WINDOWS and self.SHELL == "sh" and self.PYTHON):
+            self.skipTest("Git Bash with Python on Windows only")
+        state, _ = self.notes()
+        preview = self.reset(self.project, powershell=False)
+        self.assertEqual(preview["state"], str(state))
+
+
+def variants():
+    """Launchers the skill may use here, each with and without Python."""
+    shells = ["powershell"] if WINDOWS else []
+    if shutil.which("sh"):
+        shells.append("sh")  # On Windows, Git Bash hands off to PowerShell.
+    for shell in shells:
+        for python in (True, False):
+            yield shell, python
+
+
+for _shell, _python in variants():
+    _name = f"{_shell.capitalize()}{'Python' if _python else 'Fallback'}ResetTests"
+    globals()[_name] = type(_name, (LauncherResetCases, unittest.TestCase),
+                            {"SHELL": _shell, "PYTHON": _python})
 
 if __name__ == "__main__":
     unittest.main()

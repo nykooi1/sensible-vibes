@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\"",
-            "timeout": 5
+            "command": "exec sh \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.sh\"; powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.ps1\"; exit 0",
+            "timeout": 10
           }
         ]
       }
